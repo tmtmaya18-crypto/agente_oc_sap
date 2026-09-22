@@ -40,8 +40,8 @@
 
 ## 6. Prompt y conocimiento
 
-- [ ] 6.1 `src/knowledge/ordenes-compra.md`: proceso, actores, RC1–RC10 en lenguaje de negocio, significado de derivados y retroactiva, qué sugerir en cada bloqueo
-- [ ] 6.2 `agent/prompt.md`: rol, flujo recomendado de herramientas, prohibición de afirmar valores que no vengan de herramientas, formato de resumen (tabla del payload, bloqueos y confirmaciones con código), cierre con pregunta explícita, nunca crear sin confirmación
+- [x] 6.1 `src/knowledge/ordenes-compra.md`: proceso, actores, RC1–RC10 en lenguaje de negocio, significado de derivados y retroactiva, qué sugerir en cada bloqueo
+- [x] 6.2 `agent/prompt.md`: rol, flujo recomendado de herramientas, prohibición de afirmar valores que no vengan de herramientas, formato de resumen (tabla del payload, bloqueos y confirmaciones con código), cierre con pregunta explícita, nunca crear sin confirmación
 
 ## 7. Adaptador de modelo y ciclo del agente
 
