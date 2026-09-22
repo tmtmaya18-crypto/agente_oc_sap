@@ -15,6 +15,17 @@ La herramienta `oc_construir_payload` SHALL recibir `{ caso, paquete, derivados 
 - **WHEN** los datos no cumplen el esquema (por ejemplo, moneda distinta de COP o USD)
 - **THEN** devuelve `{ ok: false, error }` con los campos que no cumplen y no escribe nada en SAP
 
+### Requirement: Integridad de los valores frente al modelo
+`oc_construir_payload` y `oc_crear` SHALL construir el payload siempre desde el caso releído en disco y su validación. Los argumentos `paquete`, `derivados` y `payload` que envía el modelo SHALL ser opcionales, se aceptan por compatibilidad con el contrato y nunca aportan valores a la OC. Si el modelo envía un valor distinto en los campos críticos (proveedor, moneda, condiciones de pago, aprobador, posiciones), la respuesta SHALL incluir un `aviso` que diga qué se ignoró.
+
+#### Scenario: Monto alterado en oc_crear
+- **WHEN** se llama `oc_crear` para sol-004 con `confirmado = true` y un `payload` cuyo precio unitario fue cambiado
+- **THEN** la OC se crea con el precio de la solicitud validada y la respuesta incluye un `aviso` sobre `posiciones`
+
+#### Scenario: Sin argumentos opcionales
+- **WHEN** se llama `oc_construir_payload` solo con `{ caso }`
+- **THEN** devuelve el mismo payload que si se hubiesen enviado el paquete y los derivados correctos
+
 ### Requirement: Trazabilidad de cada valor
 Cada valor del payload SHALL poder rastrearse hasta una fuente: `solicitud`, `cotizacion`, `aprobacion`, `maestro.<nombre>`, `derivado` o `constante`. La trazabilidad SHALL guardarse en `out/<caso>/trazabilidad.json` como un mapa de campo a `{ valor, fuente, detalle? }`.
 
@@ -41,7 +52,7 @@ El sistema SHALL definir la interfaz `SapAdapter` con `consultarProveedor(nit)`,
 - **THEN** reciben `4500000001` y `4500000002`, y ambas quedan en `ordenes.jsonl`
 
 ### Requirement: Creación controlada de la OC
-La herramienta `oc_crear` SHALL recibir `{ caso, payload, confirmado? }` y, antes de crear, SHALL volver a validar el caso por su cuenta, sin confiar en que alguien validó antes. SHALL crear solo si no hay bloqueos y (no hay confirmaciones o `confirmado = true`). Si hay bloqueos, SHALL rechazar aunque `confirmado = true`. Si hay confirmaciones pendientes sin `confirmado = true`, SHALL devolver `{ ok: false, error }` con la lista de confirmaciones requeridas. Al crear con confirmación, SHALL marcar en `excepciones` quién confirmó. Si tiene éxito, SHALL devolver `{ numero_oc, fecha, idempotente }`.
+La herramienta `oc_crear` SHALL recibir `{ caso, payload?, confirmado? }` y, antes de crear, SHALL volver a validar el caso releído desde disco, sin confiar en que alguien validó antes. SHALL crear solo si no hay bloqueos y (no hay confirmaciones o `confirmado = true`). Si hay bloqueos, SHALL rechazar aunque `confirmado = true`. Si hay confirmaciones pendientes sin `confirmado = true`, SHALL devolver `{ ok: false, error }` con la lista de confirmaciones requeridas. Al crear con confirmación, SHALL marcar en `excepciones` quién confirmó. Si tiene éxito, SHALL devolver `{ numero_oc, fecha, idempotente }`.
 
 #### Scenario: Creación directa
 - **WHEN** se crea sol-001 sin confirmación sobre un SAP vacío

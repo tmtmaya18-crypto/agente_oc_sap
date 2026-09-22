@@ -22,13 +22,14 @@
 
 ## 4. Herramientas `oc_*`
 
-- [ ] 4.1 `src/tools/registro.ts`: `out/log.jsonl`, `out/control.csv` (encabezado y filas), `out/<caso>/trazabilidad.json`
-- [ ] 4.2 Envoltorio común que valida los args con zod, captura cualquier error y siempre devuelve `{ ok, data }` o `{ ok: false, error }` como string, registrando en `log.jsonl`
-- [ ] 4.3 `oc_leer_paquete` y `oc_validar` (`apta`, `bloqueos`, `confirmaciones`, `derivados`, `retroactiva`)
-- [ ] 4.4 `oc_construir_payload`: OrdenCompra validada, posiciones 10/20…, descripción ≤ 40 (recorte como derivado), unidad UN/H/MES, excepciones y trazabilidad por campo
-- [ ] 4.5 `oc_generar_evidencia`: `out/<caso>/aprobacion.txt` con encabezados, cuerpo y sha256
-- [ ] 4.6 `oc_crear`: vuelve a validar, bloqueos nunca pasan, confirmaciones exigen `confirmado`, idempotencia por `solicitud_id`, fila en `control.csv` en cada intento, `confirmado_por` en las excepciones
-- [ ] 4.7 `description` de una frase y `.describe()` en cada arg; rutas desde `ctx.directory`
+- [x] 4.1 `src/tools/registro.ts`: `out/log.jsonl`, `out/control.csv` (encabezado y filas), `out/<caso>/trazabilidad.json`
+- [x] 4.2 Envoltorio común que valida los args con zod, captura cualquier error y siempre devuelve `{ ok, data }` o `{ ok: false, error }` como string, registrando en `log.jsonl`
+- [x] 4.3 `oc_leer_paquete` y `oc_validar` (`apta`, `bloqueos`, `confirmaciones`, `derivados`, `retroactiva`)
+- [x] 4.4 `oc_construir_payload`: OrdenCompra validada, posiciones 10/20…, descripción ≤ 40 (recorte como derivado), unidad UN/H/MES, excepciones y trazabilidad por campo
+- [x] 4.5 `oc_generar_evidencia`: `out/<caso>/aprobacion.txt` con encabezados, cuerpo y sha256
+- [x] 4.6 `oc_crear`: vuelve a validar, bloqueos nunca pasan, confirmaciones exigen `confirmado`, idempotencia por `solicitud_id`, fila en `control.csv` en cada intento, `confirmado_por` en las excepciones
+- [x] 4.7 `description` de una frase y `.describe()` en cada arg; rutas desde `ctx.directory`
+- [x] 4.8 Integridad (D4b): `paquete`/`derivados`/`payload` opcionales, relectura desde disco, `aviso` si difieren en campos críticos; tests con paquete y payload alterados
 
 ## 5. demo.ts (verificación sin modelo)
 

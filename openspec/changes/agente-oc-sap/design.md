@@ -63,6 +63,13 @@ Cada regla RC es una función `(paquete, maestros) → Hallazgo[]`, donde un hal
 *Por qué:* el modelo puede equivocarse o sufrir inyección de instrucciones. El prompt pide confirmar, pero el diseño hace imposible saltárselo (CA2: "el diseño lo hace innecesario").
 *Alternativa descartada:* confiar solo en el prompt. Una alucinación bastaría para costar −15.
 
+### D4b. Los valores nunca viajan a través del modelo
+`oc_validar`, `oc_construir_payload` y `oc_crear` releen el caso desde `fixtures/` y recalculan la validación. Los argumentos `paquete`, `derivados` y `payload` del contrato se mantienen con sus nombres, pero son **opcionales** y no aportan valores. Si el modelo envía algo distinto en los campos críticos, la respuesta trae un `aviso` que el chat muestra en la tarjeta de la herramienta. El modelo decide **qué caso** procesar, nunca **con qué valores**.
+*Por qué:* con el contrato literal, un paquete de sol-003 con otro aprobador haría `apta = true` (−15). Además ahorra unos 1.500 tokens por copia del payload.
+*Alternativas descartadas:* exigir los argumentos y rechazar si difieren (riesgo de rechazos falsos cuando Haiku copia objetos grandes); confiar en lo que llega (deja abierto el riesgo que nombra el PRD).
+*Costo que se asume:* desviación de la letra del contrato (se declara en SOLUCION.md) y la analista no edita la OC desde el chat: corrige el origen y reprocesa (decisión de control).
+*Detectado durante la implementación:* D4 lo implicaba, pero no lo había hecho explícito.
+
 ### D5. Ciclo del agente propio con topes
 Bucle manual: `enviar(historial, herramientas)` → si hay `tool_use`, validar los argumentos con zod → ejecutar (o bloquear, según D4) → agregar los `tool_result` en un solo mensaje → repetir, hasta que no haya herramientas o se alcance `MAX_ITERACIONES` (25). Se acumula `usage` por sesión y a nivel global contra `MAX_TOKENS_SESION` y `MAX_TOKENS_GLOBAL`. Un error del proveedor o un timeout (`LLM_TIMEOUT_MS`) se captura por tipo y se convierte en un mensaje claro. La sesión se conserva.
 *Alternativa descartada:* el Tool Runner del SDK. Es menos código, pero esconde el ciclo que el PRD evalúa y complica interceptar la confirmación y aplicar los topes. Además, en la defensa conviene poder señalar el bucle.

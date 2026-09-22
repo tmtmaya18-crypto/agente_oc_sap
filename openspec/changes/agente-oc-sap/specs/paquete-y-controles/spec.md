@@ -28,11 +28,15 @@ La herramienta `oc_leer_paquete` SHALL recibir `{ caso }` (carpeta en `fixtures/
 - **THEN** devuelve `{ ok: false, error }` que nombra el campo inválido
 
 ### Requirement: Resultado de validación
-La herramienta `oc_validar` SHALL recibir `{ caso, paquete }` y devolver `{ apta, bloqueos[], confirmaciones[], derivados, retroactiva }`. Cada bloqueo y cada confirmación SHALL tener `{ codigo, detalle }`, donde `codigo` es la regla (`RC1`…`RC10`) y `detalle` explica el motivo con los valores involucrados y una acción sugerida. `apta` SHALL ser `true` si y solo si `bloqueos` está vacío. La herramienta SHALL evaluar todas las reglas aunque una ya haya fallado, para devolver la lista completa.
+La herramienta `oc_validar` SHALL recibir `{ caso, paquete? }` y SHALL validar siempre el paquete que relee desde los archivos del caso. El `paquete` que envía el modelo es opcional, se acepta por compatibilidad con el contrato y nunca decide el resultado. Si difiere de lo leído en los campos críticos, la respuesta SHALL incluir un `aviso`. SHALL devolver `{ apta, bloqueos[], confirmaciones[], derivados, retroactiva }`. Cada bloqueo y cada confirmación SHALL tener `{ codigo, detalle }`, donde `codigo` es la regla (`RC1`…`RC10`) y `detalle` explica el motivo con los valores involucrados y una acción sugerida. `apta` SHALL ser `true` si y solo si `bloqueos` está vacío. La herramienta SHALL evaluar todas las reglas aunque una ya haya fallado, para devolver la lista completa.
 
 #### Scenario: Caso limpio
 - **WHEN** se valida sol-001
 - **THEN** `apta = true`, `bloqueos = []`, `confirmaciones = []`, `retroactiva = false`
+
+#### Scenario: Paquete alterado por el modelo
+- **WHEN** se llama `oc_validar` para sol-003 con un `paquete` cuyo aprobador fue cambiado por uno válido
+- **THEN** el resultado sigue teniendo los bloqueos RC2 y RC3 (se validó lo leído del caso) y la respuesta incluye un `aviso` de que se ignoró el paquete recibido
 
 ### Requirement: RC1 Proveedor existente y activo (bloqueo)
 El sistema SHALL buscar el proveedor en `proveedores.json` por NIT de la solicitud (normalizado a dígitos). Si la solicitud no trae NIT, SHALL buscarlo por nombre normalizado (sin tildes, mayúsculas, puntuación ni espacios repetidos). Si no existe o `activo = false`, SHALL agregar un bloqueo RC1.
