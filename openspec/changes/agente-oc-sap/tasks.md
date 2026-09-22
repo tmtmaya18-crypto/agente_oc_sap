@@ -5,13 +5,13 @@
 - [x] 1.3 Copiar `entrega/reto-03/fixtures/` sin cambios a `fixtures/` y verificar con `diff -r` que son idénticos
 - [x] 1.4 `package.json` (scripts `dev`, `start`, `demo`, `test`, `modulo`), `tsconfig.json` estricto, dependencias `zod` (v4) y `@anthropic-ai/sdk`
 - [x] 1.5 `.gitignore` (`.env`, `out/`, `node_modules/`) y `.env.example` con todas las variables sin valores
-- [ ] 1.6 Primer commit y push; confirmar en GitHub que el autor es la cuenta personal
+- [x] 1.6 Primer commit y push; confirmar en GitHub que el autor es la cuenta personal
 
 ## 2. SAP simulado
 
-- [ ] 2.1 `src/sap/adapter.ts` con la interfaz `SapAdapter` exacta del PRD y el tipo/esquema zod `OrdenCompra` (sección 7.4)
-- [ ] 2.2 `src/sap/mock.ts`: numeración desde `4500000001`, persistencia en `out/sap/ordenes.jsonl`, `buscarOrdenPorReferencia`, `consultarProveedor` sobre el maestro
-- [ ] 2.3 Tests: numeración secuencial y búsqueda por referencia
+- [x] 2.1 `src/sap/adapter.ts` con la interfaz `SapAdapter` exacta del PRD y el tipo/esquema zod `OrdenCompra` (sección 7.4)
+- [x] 2.2 `src/sap/mock.ts`: numeración desde `4500000001`, persistencia en `out/sap/ordenes.jsonl`, `buscarOrdenPorReferencia`, `consultarProveedor` sobre el maestro
+- [x] 2.3 Tests: numeración secuencial y búsqueda por referencia
 
 ## 3. Lectura y controles
 
