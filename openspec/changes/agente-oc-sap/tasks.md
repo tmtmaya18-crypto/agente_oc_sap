@@ -15,10 +15,10 @@
 
 ## 3. Lectura y controles
 
-- [ ] 3.1 `src/tools/lectura.ts`: carga de maestros y del caso; parseo de `cotizacion.txt` (proveedor, NIT normalizado, total, moneda, validez_hasta) y `factura.txt` (número, fecha, total); aprobación con `aprobado`; faltantes como `null` + lista `faltantes`
-- [ ] 3.2 Errores tipados de lectura: caso inexistente, JSON malformado, monto no numérico
-- [ ] 3.3 `src/tools/reglas.ts`: RC1–RC10 como funciones puras que devuelven hallazgos, con umbrales como constantes (RC3 tope 0 fuera del centro, RC9 solo día)
-- [ ] 3.4 Tests por regla (al menos un caso que pasa y uno que falla por RC) y la matriz de los 6 fixtures
+- [x] 3.1 `src/tools/lectura.ts`: carga de maestros y del caso; parseo de `cotizacion.txt` (proveedor, NIT normalizado, total, moneda, validez_hasta) y `factura.txt` (número, fecha, total); aprobación con `aprobado`; faltantes como `null` + lista `faltantes`
+- [x] 3.2 Errores tipados de lectura: caso inexistente, JSON malformado, monto no numérico
+- [x] 3.3 `src/tools/reglas.ts`: RC1–RC10 como funciones puras que devuelven hallazgos, con umbrales como constantes (RC3 tope 0 fuera del centro, RC9 solo día)
+- [x] 3.4 Tests por regla (al menos un caso que pasa y uno que falla por RC) y la matriz de los 6 fixtures
 
 ## 4. Herramientas `oc_*`
 
