@@ -33,10 +33,10 @@
 
 ## 5. demo.ts (verificación sin modelo)
 
-- [ ] 5.1 Limpiar `out/`, recorrer sol-001…sol-006, luego sol-001 otra vez y sol-004 con `confirmado: true`
-- [ ] 5.2 Imprimir tabla por caso (`apta`, bloqueos, confirmaciones, retroactiva, OC o motivo)
-- [ ] 5.3 Verificar contra los esperados (incluidos OC `4500000001`/`4500000002`, derivados C1/Z030 y 8 filas en `control.csv`) con ✓/✗ y exit code
-- [ ] 5.4 Correr la demo dos veces seguidas sin clave y confirmar determinismo; commit
+- [x] 5.1 Limpiar `out/`, recorrer sol-001…sol-006, luego sol-001 otra vez y sol-004 con `confirmado: true`
+- [x] 5.2 Imprimir tabla por caso (`apta`, bloqueos, confirmaciones, retroactiva, OC o motivo)
+- [x] 5.3 Verificar contra los esperados (incluidos OC `4500000001`/`4500000002`, derivados C1/Z030 y 8 filas en `control.csv`) con ✓/✗ y exit code
+- [x] 5.4 Correr la demo dos veces seguidas sin clave y confirmar determinismo; commit
 
 ## 6. Prompt y conocimiento
 
