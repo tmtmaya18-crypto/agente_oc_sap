@@ -45,6 +45,10 @@ bun test                         # 55 tests: reglas, herramientas, ciclo del age
 
 `demo.ts` termina con código 1 si algún resultado difiere de lo esperado en el PRD.
 
+> `demo.ts` y el servidor escriben en la misma carpeta `out/`, y la demo la limpia al empezar.
+> No la corras mientras pruebas el chat en local, o se pierden los registros de esa prueba.
+> Después de correrla, reinicia el SAP simulado desde el chat.
+
 ## Variables de entorno
 
 | Variable | Por defecto | Para qué |
