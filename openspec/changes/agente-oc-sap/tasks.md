@@ -79,5 +79,5 @@
 
 ## 12. Bonus módulo reutilizable
 
-- [ ] 12.1 `scripts/empaquetar-modulo.ts` que genera `modulo/agent.md`, `modulo/skill/ordenes-compra/SKILL.md` y `modulo/tools/oc.ts` (bundle) desde las fuentes
-- [ ] 12.2 Verificar que `modulo/tools/oc.ts` se importa y ejecuta solo (con `ctx.directory` apuntando al repo); commit final y push
+- [x] 12.1 `scripts/empaquetar-modulo.ts` que genera `modulo/agent.md`, `modulo/skill/ordenes-compra/SKILL.md` y `modulo/tools/oc.ts` (bundle) desde las fuentes
+- [x] 12.2 Verificar que `modulo/tools/oc.ts` se importa y ejecuta solo (con `ctx.directory` apuntando al repo); commit final y push
