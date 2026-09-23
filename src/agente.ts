@@ -139,22 +139,35 @@ async function ejecutar(
     },
   })
 
+  // CA4: toda llamada queda en out/log.jsonl, también las que no llegan a ejecutarse.
+  const casoPedido = (llamada.argumentos as { caso?: unknown } | null)?.caso
+  const rechazar = (error: string, extra: Partial<LlamadaVisible> = {}) => {
+    registrarLog(ctx.directory, {
+      herramienta: llamada.nombre,
+      caso: typeof casoPedido === "string" ? casoPedido : null,
+      ok: false,
+      resumen: `${extra.bloqueadaPorServidor ? "bloqueada por el servidor: " : "no ejecutada: "}${error}`,
+    })
+    return responder({ ok: false, error }, extra)
+  }
+
   const herramienta = herramientas[llamada.nombre as NombreHerramienta]
-  if (!herramienta) return responder({ ok: false, error: `La herramienta ${llamada.nombre} no existe.` })
+  if (!herramienta) return rechazar(`La herramienta ${llamada.nombre} no existe.`)
 
   // El backend valida los argumentos antes de ejecutar (contrato 6.2).
   const args = z.object(herramienta.args).safeParse(llamada.argumentos)
   if (!args.success) {
     const detalle = args.error.issues.map((i) => `${i.path.join(".") || "args"}: ${i.message}`).join("; ")
-    return responder({ ok: false, error: `Argumentos inválidos: ${detalle}` })
+    return rechazar(`Argumentos inválidos: ${detalle}`)
   }
 
   // Gate de confirmación: confirmado=true solo pasa si la usuaria confirmó ESE caso en ESTE mensaje.
   const { caso, confirmado } = args.data as { caso?: string; confirmado?: boolean }
   if (llamada.nombre === "oc_crear" && confirmado === true && confirmacionValida?.caso !== caso) {
-    const error = "Requiere confirmación explícita del usuario en su último mensaje. Muéstrale las excepciones y pregúntale antes de crear."
-    registrarLog(ctx.directory, { herramienta: "oc_crear", caso: caso ?? null, ok: false, resumen: `bloqueada por el servidor: ${error}` })
-    return responder({ ok: false, error }, { bloqueadaPorServidor: true })
+    return rechazar(
+      "Requiere confirmación explícita del usuario en su último mensaje. Muéstrale las excepciones y pregúntale antes de crear.",
+      { bloqueadaPorServidor: true },
+    )
   }
 
   return responder(JSON.parse(await herramienta.execute(args.data, ctx)) as Resultado)

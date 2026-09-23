@@ -1,11 +1,25 @@
 import { describe, expect, test } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import type { OrdenCompra } from "../src/sap/adapter.ts"
 import { herramientas, type NombreHerramienta, type ToolCtx } from "../src/tools/oc.ts"
 import { recortarDescripcion, sha256 } from "../src/tools/payload.ts"
 import { directorioTemporal } from "./helpers.ts"
 
-type Respuesta = { ok: boolean; data?: Record<string, any>; error?: string; [k: string]: unknown }
+/** Forma de los datos que devuelven las herramientas, para leerlos tipados en los tests. */
+type Datos = {
+  orden: OrdenCompra
+  ruta: string
+  sha256: string
+  bloqueos: Array<{ codigo: string }>
+  derivados: Record<string, string>
+  aprobacion: { de: string }
+  numero_oc: string
+  idempotente: boolean
+  evidencia: string
+  aviso?: string
+}
+type Respuesta = { ok: boolean; data?: Datos; error?: string; [k: string]: unknown }
 
 function entorno() {
   const ctx: ToolCtx = { directory: directorioTemporal(), sessionId: "test" }
@@ -53,7 +67,7 @@ describe("payload y evidencia", () => {
     const orden = r.data!.orden
     expect(orden.proveedor).toEqual({ codigo_sap: "100234", nit: "900555111", nombre: "TecnoSuministros S.A.S." })
     expect(orden.posiciones[0]).toMatchObject({ numero: 10, cantidad: 120, unidad: "UN", precio_unitario: 95000, indicador_iva: "C1" })
-    expect(orden.posiciones[0].descripcion.length).toBeLessThanOrEqual(40)
+    expect(orden.posiciones[0]!.descripcion.length).toBeLessThanOrEqual(40)
     const traza = JSON.parse(readFileSync(join(ctx.directory, "out", "sol-001", "trazabilidad.json"), "utf8"))
     expect(traza["posiciones[0].descripcion"].fuente).toBe("derivado")
   })
@@ -61,7 +75,7 @@ describe("payload y evidencia", () => {
   test("sol-004 se cobra por horas y sol-006 trae derivados trazados", async () => {
     const { ctx, llamar } = entorno()
     const r4 = await llamar("oc_construir_payload", { caso: "sol-004" })
-    expect(r4.data!.orden.posiciones[0].unidad).toBe("H")
+    expect(r4.data!.orden.posiciones[0]!.unidad).toBe("H")
     await llamar("oc_construir_payload", { caso: "sol-006" })
     const traza = JSON.parse(readFileSync(join(ctx.directory, "out", "sol-006", "trazabilidad.json"), "utf8"))
     expect(traza["posiciones[0].indicador_iva"]).toMatchObject({ valor: "C1", fuente: "derivado" })
@@ -142,7 +156,7 @@ describe("integridad frente al modelo (D4b)", () => {
   test("un payload con el precio alterado se ignora al crear", async () => {
     const { ctx, llamar } = entorno()
     const { orden } = (await llamar("oc_construir_payload", { caso: "sol-004" })).data!
-    orden.posiciones[0].precio_unitario = 265000
+    orden.posiciones[0]!.precio_unitario = 265000
     const r = await llamar("oc_crear", { caso: "sol-004", payload: orden, confirmado: true })
     expect(r.data!.aviso).toContain("posiciones")
     const guardada = JSON.parse(readFileSync(join(ctx.directory, "out", "sap", "ordenes.jsonl"), "utf8"))

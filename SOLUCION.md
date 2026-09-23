@@ -45,6 +45,18 @@ Regla que ordena todo: **el modelo decide qué caso procesar, nunca con qué val
 reglas de negocio (por ejemplo el umbral del 2 % de RC5) se hace en `src/tools/reglas.ts`, sin tocar
 el servidor.
 
+**Dependencias** (PRD 8): son pocas a propósito, para poder explicar cada pieza.
+
+| Dependencia | Para qué | Por qué esta y no otra |
+|---|---|---|
+| **Bun** (runtime) | Ejecuta TypeScript sin compilar, servidor HTTP (`Bun.serve`), tests (`bun test`) y el bundle del módulo (`Bun.build`). | Reemplaza a Node + Express + un framework de tests + un bundler. El PRD usa `bun run demo.ts`. |
+| **`zod`** | Argumentos de las herramientas (obligatorio), esquema `OrdenCompra`, validación de la solicitud y del cuerpo de `/api/chat`. `z.toJSONSchema` genera los esquemas que ve el modelo. | Obligatoria en el PRD, y con `toJSONSchema` no hace falta otra librería de esquemas. |
+| **`@anthropic-ai/sdk`** | Cliente oficial de la Messages API: tipos, errores tipados, timeout y reintentos. | Usar el cliente oficial evita reimplementar esos detalles con `fetch`; solo lo usa `src/llm/anthropic.ts`. |
+| `typescript`, `bun-types` (desarrollo) | Revisión de tipos estricta (`bunx tsc --noEmit`). | Solo en desarrollo. |
+
+Sin framework web, sin librería de Markdown (el chat usa un renderizador mínimo que escapa todo el
+HTML) y sin librería de PDF (el P1 de evidencia en PDF no se hizo).
+
 ## 3. Ciclo del agente
 
 `src/agente.ts` implementa el bucle a mano (sin el *tool runner* del SDK, ver sección 8):
@@ -237,6 +249,15 @@ Lo que le diría a la dirección:
     procesar otra solicitud). Interpreto así "el siguiente mensaje del usuario confirma" de CA3,
     porque la pregunta se vuelve a mostrar en cada respuesta.
 11. **Moneda:** solo COP y USD, como el esquema del PRD. Otra moneda es un error de esquema legible.
+12. **Argumentos del contrato:** `paquete`, `derivados` y `payload` son opcionales y no aportan
+    valores (decisión 2). Es la única desviación consciente del contrato de la sección 6.2.
+13. **Fuentes de trazabilidad:** además de `solicitud`, `cotizacion`, `maestro.<nombre>` y `derivado`,
+    uso `aprobacion` (email y fecha del aprobador salen del correo de aprobación) y `constante`
+    (sociedad y organización `1000`), para que cada valor diga exactamente de dónde viene.
+14. **OC que ya existía:** `oc_crear` devuelve el número con `idempotente = true` y `fecha = null`,
+    porque la interfaz obligatoria `buscarOrdenPorReferencia` solo devuelve el número.
+15. **`consultarProveedor`:** está implementado en el SAP simulado como exige la interfaz, pero RC1
+    lee el maestro de los fixtures. Con SAP real, RC1 debería consultar el proveedor en vivo.
 
 ## 10. Cobertura
 

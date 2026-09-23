@@ -1,6 +1,6 @@
 // El ciclo del agente con un modelo falso que sigue un guion: sin red y sin clave.
 import { describe, expect, test } from "bun:test"
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { construirSistema, definiciones, esCancelacion, esConfirmacion, nuevaSesion, procesarTurno, type Dependencias } from "../src/agente.ts"
 import { config } from "../src/config.ts"
@@ -163,11 +163,17 @@ describe("ciclo del agente", () => {
     expect(reintento.toolCalls[0]).toMatchObject({ nombre: "oc_crear", ok: true })
   })
 
-  test("argumentos inválidos se devuelven al modelo sin ejecutar", async () => {
-    const modelo = new ModeloGuion([{ llamadas: [{ nombre: "oc_validar", argumentos: { caso: 7 } }] }, { texto: "corrijo" }])
-    const r = await procesarTurno(nuevaSesion("s"), "valida", {}, deps(modelo))
-    expect(r.toolCalls[0]).toMatchObject({ ok: false })
+  test("argumentos inválidos y herramientas inexistentes no se ejecutan, pero quedan en out/log.jsonl (CA4)", async () => {
+    const modelo = new ModeloGuion([
+      { llamadas: [{ nombre: "oc_validar", argumentos: { caso: 7 } }, { nombre: "oc_borrar_todo", argumentos: {} }] },
+      { texto: "corrijo" },
+    ])
+    const d = deps(modelo)
+    const r = await procesarTurno(nuevaSesion("s"), "valida", {}, d)
+    expect(r.toolCalls.map((t) => t.ok)).toEqual([false, false])
     expect(r.toolCalls[0]!.resumen).toContain("Argumentos inválidos")
+    const log = readFileSync(join(d.directory, "out", "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l))
+    expect(log.map((l) => l.herramienta)).toEqual(["oc_validar", "oc_borrar_todo"])
   })
 
   test("tope de tokens por sesión corta sin llamar al modelo", async () => {
