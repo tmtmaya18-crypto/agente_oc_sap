@@ -68,16 +68,16 @@
 
 ## 10. Despliegue y seguridad
 
-- [ ] 10.1 Proyecto en Railway desde el repo, comando `bun run start`, variables en el panel
-- [ ] 10.2 Verificar el link: `/api/health`, los tres prompts de verificación y la pestaña Red del navegador sin la clave
-- [ ] 10.3 Correr el grep de claves y `git log` limpio; medir el costo real por caso con el `usage` registrado
+- [x] 10.1 Proyecto en Railway desde el repo, comando `bun run start`, variables en el panel
+- [x] 10.2 Verificar el link: `/api/health`, los tres prompts de verificación y la pestaña Red del navegador sin la clave
+- [x] 10.3 Correr el grep de claves y `git log` limpio; medir el costo real por caso con el `usage` registrado
 
 ## 11. Documentación
 
-- [ ] 11.1 `README.md`: un comando para levantar, variables, `bun run demo.ts`, link, API documentada, estado inicial del SAP simulado
-- [ ] 11.2 `SOLUCION.md` secciones 1–4: problema, arquitectura (diagrama y capas), ciclo del agente, modelo y costo medido
-- [ ] 11.3 `SOLUCION.md` secciones 5–7: matriz de controles (la más difícil), diseño del adaptador SAP real (7.5: opción, mapeo, credenciales, idempotencia, error parcial, Plan B) y lectura del proceso de OC retroactivas
-- [ ] 11.4 `SOLUCION.md` secciones 8–12: ≥ 3 decisiones con alternativa descartada, supuestos (RC3, RC9, 40 caracteres, estado inicial, IVA incluido, unidad), cobertura HU-1…HU-6, uso de IA con una sugerencia descartada, riesgos
+- [x] 11.1 `README.md`: un comando para levantar, variables, `bun run demo.ts`, link, API documentada, estado inicial del SAP simulado
+- [x] 11.2 `SOLUCION.md` secciones 1–4: problema, arquitectura (diagrama y capas), ciclo del agente, modelo y costo medido
+- [x] 11.3 `SOLUCION.md` secciones 5–7: matriz de controles (la más difícil), diseño del adaptador SAP real (7.5: opción, mapeo, credenciales, idempotencia, error parcial, Plan B) y lectura del proceso de OC retroactivas
+- [x] 11.4 `SOLUCION.md` secciones 8–12: ≥ 3 decisiones con alternativa descartada, supuestos (RC3, RC9, 40 caracteres, estado inicial, IVA incluido, unidad), cobertura HU-1…HU-6, uso de IA con una sugerencia descartada, riesgos
 
 ## 12. Bonus módulo reutilizable
 
