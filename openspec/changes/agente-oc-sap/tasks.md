@@ -53,9 +53,9 @@
 
 ## 8. API HTTP
 
-- [ ] 8.1 `src/server.ts` con `Bun.serve`: `POST /api/chat`, `GET /api/sessions/:id`, `GET /api/health`, `POST /api/reset`, estáticos de `web/`
-- [ ] 8.2 Sesiones en memoria con expiración; estado inicial al arrancar y en reset (out/ limpio + sol-001 = `4500000001`)
-- [ ] 8.3 Verificar que ninguna respuesta ni log contiene la clave
+- [x] 8.1 `src/server.ts` con `Bun.serve`: `POST /api/chat`, `GET /api/sessions/:id`, `GET /api/health`, `POST /api/reset`, estáticos de `web/`
+- [x] 8.2 Sesiones en memoria con expiración; estado inicial al arrancar y en reset (out/ limpio + sol-001 = `4500000001`)
+- [x] 8.3 Verificar que ninguna respuesta ni log contiene la clave
 
 ## 9. Front de chat
 
