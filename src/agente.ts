@@ -19,7 +19,12 @@ export type LlamadaVisible = {
   bloqueadaPorServidor?: boolean
 }
 
-export type Pendiente = { caso: string; confirmaciones: string[] }
+/**
+ * Lo que el agente dejó esperando una decisión de la usuaria:
+ * - "excepciones": hay confirmaciones (RC5, RC6, RC8, RC9); oc_crear exige confirmado=true.
+ * - "crear": la OC está lista y sin excepciones; solo falta que la usuaria diga que la cree.
+ */
+export type Pendiente = { caso: string; tipo: "excepciones" | "crear"; confirmaciones: string[] }
 
 export type EntradaHistorial =
   | { rol: "usuario"; texto: string; ts: string }
@@ -88,19 +93,21 @@ type Resultado = {
   bloqueos?: Array<{ codigo: string }>
 }
 
-/** Qué deja pendiente de confirmación cada resultado de herramienta. */
+/** Qué deja pendiente de decisión cada resultado de herramienta. */
 function actualizarPendiente(actual: Pendiente | null, nombre: string, caso: string | undefined, r: Resultado): Pendiente | null {
   if (!caso) return actual
-  const confirmaciones = (lista?: unknown) => ((lista as Array<{ codigo: string }> | undefined) ?? []).map((c) => c.codigo)
-  if (nombre === "oc_validar" && r.ok && r.data?.apta === true) {
-    const codigos = confirmaciones(r.data.confirmaciones)
-    return codigos.length ? { caso, confirmaciones: codigos } : actual?.caso === caso ? null : actual
+  const codigos = (lista?: unknown) => ((lista as Array<{ codigo: string }> | undefined) ?? []).map((c) => c.codigo)
+  const limpiar = () => (actual?.caso === caso ? null : actual)
+  if (nombre === "oc_validar" && r.ok && r.data) {
+    if (r.data.oc_existente || r.data.apta !== true) return limpiar()
+    const confirmaciones = codigos(r.data.confirmaciones)
+    return { caso, tipo: confirmaciones.length ? "excepciones" : "crear", confirmaciones }
   }
   if (nombre === "oc_crear") {
-    if (r.requiere_confirmacion) return { caso, confirmaciones: confirmaciones(r.requiere_confirmacion) }
-    // Creada (o ya existía) o bloqueada por reglas: ya no hay nada que confirmar para ese caso.
+    if (r.requiere_confirmacion) return { caso, tipo: "excepciones", confirmaciones: codigos(r.requiere_confirmacion) }
+    // Creada (o ya existía) o bloqueada por reglas: ya no hay nada que decidir para ese caso.
     // Un rechazo del servidor o un error de argumentos NO limpia lo pendiente.
-    if (r.ok || r.bloqueos) return actual?.caso === caso ? null : actual
+    if (r.ok || r.bloqueos) return limpiar()
   }
   return actual
 }

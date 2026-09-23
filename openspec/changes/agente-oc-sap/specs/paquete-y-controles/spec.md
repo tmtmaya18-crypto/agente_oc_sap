@@ -34,6 +34,14 @@ La herramienta `oc_validar` SHALL recibir `{ caso, paquete? }` y SHALL validar s
 - **WHEN** se valida sol-001
 - **THEN** `apta = true`, `bloqueos = []`, `confirmaciones = []`, `retroactiva = false`
 
+#### Scenario: Estado explícito de cada control
+- **WHEN** se valida sol-004
+- **THEN** la respuesta incluye `controles` con el estado de RC1 a RC10 (`ok`, `bloqueo`, `confirmacion`, `derivado` o `no_aplica`); RC5 es `confirmacion`, RC7 es `ok` (las condiciones vienen en la solicitud) y RC8 es `no_aplica` (no hay factura)
+
+#### Scenario: OC ya existente en SAP
+- **WHEN** se valida sol-001 después de que su OC fue creada
+- **THEN** la respuesta incluye `oc_existente = "4500000001"`
+
 #### Scenario: Paquete alterado por el modelo
 - **WHEN** se llama `oc_validar` para sol-003 con un `paquete` cuyo aprobador fue cambiado por uno válido
 - **THEN** el resultado sigue teniendo los bloqueos RC2 y RC3 (se validó lo leído del caso) y la respuesta incluye un `aviso` de que se ignoró el paquete recibido
@@ -74,6 +82,10 @@ El sistema SHALL exigir `valor_total ≤ tope` del aprobador para ese `centro_co
 #### Scenario: Monto sobre el tope
 - **WHEN** el aprobador es del centro pero `valor_total` supera su tope
 - **THEN** hay un bloqueo RC3 con el valor y el tope
+
+#### Scenario: Acción sugerida según los topes reales
+- **WHEN** hay un bloqueo RC3
+- **THEN** el detalle lista los aprobadores del centro cuyo tope cubre el valor o, si ninguno lo cubre (sol-003: tope máximo de CC-2020 = 30.000.000 < 74.000.000), dice que ningún aprobador del centro puede aprobarlo y que hay que escalar
 
 ### Requirement: RC4 Subárea del centro de costo (bloqueo)
 El sistema SHALL exigir que `subarea` pertenezca a las `subareas` del `centro_costo`. Un centro de costo inexistente también SHALL bloquear con RC4.

@@ -33,6 +33,17 @@ Cuando una acción requiere confirmación, el agente SHALL terminar el turno con
 - **WHEN** el modelo intenta `oc_crear` con `confirmado = true` sin que el usuario haya confirmado en ese turno
 - **THEN** el servidor bloquea la ejecución, registra el intento y el agente pide la confirmación
 
+### Requirement: Estado "lista para crear"
+Cuando una solicitud queda apta, sin confirmaciones pendientes y sin OC existente, y el agente no la creó en ese turno, la respuesta SHALL traer `needsConfirmation = true` con `pendiente.tipo = "crear"`, para que toda pregunta del agente sobre crear tenga su acción en la interfaz. Las excepciones pendientes usan `pendiente.tipo = "excepciones"` y son las únicas que exigen `confirmado = true` en `oc_crear`.
+
+#### Scenario: Procesar una solicitud limpia
+- **WHEN** después de reiniciar el SAP la usuaria pide "Procesa sol-001" y sol-001 no tiene OC
+- **THEN** la respuesta trae `pendiente = { caso: "sol-001", tipo: "crear" }`
+
+#### Scenario: Pedir crear una OC que ya existe
+- **WHEN** la usuaria pide "Crea la OC de sol-001" y ya existe
+- **THEN** el agente responde en ese mismo turno con `4500000001` (idempotente), sin pedir confirmación
+
 ### Requirement: Casos de verificación del evaluador
 El agente SHALL responder correctamente desde el chat a los prompts de verificación de la defensa.
 
@@ -73,7 +84,7 @@ El backend SHALL aplicar un tope de tokens por sesión y un tope global de token
 - **THEN** los mensajes siguientes reciben "se alcanzó el límite de uso de esta sesión" sin llamar al proveedor
 
 ### Requirement: API HTTP
-El backend SHALL exponer `POST /api/chat` (`{ sessionId, message, confirm? }` → `{ reply, toolCalls[], needsConfirmation, pendiente? }`), `GET /api/sessions/:id` (historial completo) y `GET /api/health` (`{ ok: true, provider, model }`). También SHALL exponer `POST /api/reset`, que reinicia `out/` y el SAP simulado a su estado inicial. La API SHALL estar documentada en el README.
+El backend SHALL exponer `POST /api/chat` (`{ sessionId, message, confirm? }` → `{ reply, toolCalls[], needsConfirmation, pendiente }`, con `pendiente = { caso, tipo: "excepciones" | "crear", confirmaciones[] } | null`), `GET /api/sessions/:id` (historial completo) y `GET /api/health` (`{ ok: true, provider, model }`). También SHALL exponer `POST /api/reset`, que reinicia `out/` y el SAP simulado a su estado inicial. La API SHALL estar documentada en el README.
 
 #### Scenario: Health sin clave
 - **WHEN** se consulta `GET /api/health`

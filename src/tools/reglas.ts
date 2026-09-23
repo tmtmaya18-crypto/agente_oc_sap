@@ -19,8 +19,13 @@ export type Derivados = {
   condiciones_pago?: string
 }
 
+export type EstadoControl = "ok" | "bloqueo" | "confirmacion" | "derivado" | "no_aplica"
+export const CODIGOS = ["RC1", "RC2", "RC3", "RC4", "RC5", "RC6", "RC7", "RC8", "RC9", "RC10"] as const
+
 export type Validacion = {
   apta: boolean
+  /** Estado explícito de cada control, para que nadie tenga que inferir cuáles pasaron. */
+  controles: Record<(typeof CODIGOS)[number], EstadoControl>
   bloqueos: Hallazgo[]
   confirmaciones: Hallazgo[]
   derivados: Derivados
@@ -63,12 +68,14 @@ export const rc2: Regla = (ctx) => {
   if (!aprobacion.aprobado)
     return [bloqueo("RC2", `El correo de ${aprobacion.de} no contiene "Aprobado". Acción: pedir una aprobación explícita.`)]
   const centro = centroDe(ctx)
-  const validos = centro?.aprobadores.map((a) => a.email) ?? []
-  if (!validos.includes(aprobacion.de))
+  const aprobadores = centro?.aprobadores ?? []
+  if (!aprobadores.some((a) => a.email === aprobacion.de))
     return [
       bloqueo(
         "RC2",
-        `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores válidos: ${validos.join(", ") || "ninguno"}. Acción: pedir la aprobación a uno de ellos.`,
+        `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores del centro: ${
+          aprobadores.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ") || "ninguno"
+        }. Ver RC3 para saber quién puede aprobar este valor.`,
       ),
     ]
   return []
@@ -77,15 +84,18 @@ export const rc2: Regla = (ctx) => {
 /** Si quien aprueba no pertenece al centro, su tope en ese centro es 0. */
 export const rc3: Regla = (ctx) => {
   const { aprobacion, solicitud } = ctx.paquete
-  const aprobador = ctx.maestros.centros
-    .find((c) => c.centro_costo === solicitud.centro_costo)
-    ?.aprobadores.find((a) => a.email === aprobacion?.de)
-  const tope = aprobador?.tope ?? 0
+  const aprobadores = centroDe(ctx)?.aprobadores ?? []
+  const tope = aprobadores.find((a) => a.email === aprobacion?.de)?.tope ?? 0
   if (solicitud.valor_total <= tope) return []
+  // La acción sugerida sale de los topes reales del maestro, no de una suposición.
+  const suficientes = aprobadores.filter((a) => a.tope >= solicitud.valor_total)
+  const accion = suficientes.length
+    ? `Acción: pedir la aprobación a ${suficientes.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ")}.`
+    : `Ningún aprobador de ${solicitud.centro_costo} tiene tope suficiente (máximo ${pesos(Math.max(0, ...aprobadores.map((a) => a.tope)))}). Acción: escalar a la dirección o dividir la compra según la política.`
   return [
     bloqueo(
       "RC3",
-      `El valor ${pesos(solicitud.valor_total)} supera el tope de ${aprobacion?.de ?? "quien aprueba"} en ${solicitud.centro_costo} (${pesos(tope)}). Acción: escalar a un aprobador con tope suficiente.`,
+      `El valor ${pesos(solicitud.valor_total)} supera el tope de ${aprobacion?.de ?? "quien aprueba"} en ${solicitud.centro_costo} (${pesos(tope)}). ${accion}`,
     ),
   ]
 }
@@ -168,16 +178,30 @@ function derivar(paquete: Paquete, proveedor: Proveedor | null): Derivados {
 
 const REGLAS: Regla[] = [rc1, rc2, rc3, rc4, rc5, rc6, rc8, rc9, rc10]
 
+function estadoControles(paquete: Paquete, hallazgos: Hallazgo[], derivados: Derivados): Validacion["controles"] {
+  const estado = (codigo: (typeof CODIGOS)[number]): EstadoControl => {
+    const h = hallazgos.find((x) => x.codigo === codigo)
+    if (h) return h.tipo
+    if (codigo === "RC7") return derivados.condiciones_pago ? "derivado" : "ok"
+    if (codigo === "RC8") return paquete.factura ? "ok" : "no_aplica"
+    if (codigo === "RC9") return paquete.aprobacion ? "ok" : "no_aplica"
+    return "ok"
+  }
+  return Object.fromEntries(CODIGOS.map((c) => [c, estado(c)])) as Validacion["controles"]
+}
+
 /** Evalúa todas las reglas (no corta en la primera) para devolver la lista completa. */
 export function validar(paquete: Paquete, maestros: Maestros): Validacion {
   const proveedor = resolverProveedor(paquete, maestros)
   const hallazgos = REGLAS.flatMap((regla) => regla({ paquete, maestros, proveedor }))
   const bloqueos = hallazgos.filter((h) => h.tipo === "bloqueo")
+  const derivados = derivar(paquete, proveedor)
   return {
     apta: bloqueos.length === 0,
+    controles: estadoControles(paquete, hallazgos, derivados),
     bloqueos,
     confirmaciones: hallazgos.filter((h) => h.tipo === "confirmacion"),
-    derivados: derivar(paquete, proveedor),
+    derivados,
     retroactiva: rc8({ paquete, maestros, proveedor }).length > 0,
     proveedor,
   }

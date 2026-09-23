@@ -70,6 +70,10 @@ Cada regla RC es una función `(paquete, maestros) → Hallazgo[]`, donde un hal
 *Costo que se asume:* desviación de la letra del contrato (se declara en SOLUCION.md) y la analista no edita la OC desde el chat: corrige el origen y reprocesa (decisión de control).
 *Detectado durante la implementación:* D4 lo implicaba, pero no lo había hecho explícito.
 
+### D4c. Datos completos para que el modelo no complete con suposiciones
+Hallado en la prueba con el modelo real: Haiku afirmó "RC7 derivado" en sol-004 (falso) y recomendó a un aprobador sin tope suficiente en sol-003. Las dos veces rellenó lo que la herramienta no decía. Solución en la capa de ejecución: `oc_validar` devuelve el estado explícito de cada control (`controles`) y si ya existe la OC (`oc_existente`); el detalle de RC3 calcula qué aprobadores alcanzan el tope; `oc_crear` devuelve el resumen de la OC. El estado "lista para crear" (`pendiente.tipo = "crear"`) hace que toda pregunta del agente tenga su botón.
+*Alternativa descartada:* reforzar solo el prompt. Reduce el problema, pero no lo elimina.
+
 ### D5. Ciclo del agente propio con topes
 Bucle manual: `enviar(historial, herramientas)` → si hay `tool_use`, validar los argumentos con zod → ejecutar (o bloquear, según D4) → agregar los `tool_result` en un solo mensaje → repetir, hasta que no haya herramientas o se alcance `MAX_ITERACIONES` (25). Se acumula `usage` por sesión y a nivel global contra `MAX_TOKENS_SESION` y `MAX_TOKENS_GLOBAL`. Un error del proveedor o un timeout (`LLM_TIMEOUT_MS`) se captura por tipo y se convierte en un mensaje claro. La sesión se conserva.
 *Alternativa descartada:* el Tool Runner del SDK. Es menos código, pero esconde el ciclo que el PRD evalúa y complica interceptar la confirmación y aplicar los topes. Además, en la defensa conviene poder señalar el bucle.

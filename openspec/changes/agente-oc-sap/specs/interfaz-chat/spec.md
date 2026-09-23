@@ -21,6 +21,8 @@ Por cada llamada a herramienta del turno, el front SHALL mostrar una tarjeta con
 ### Requirement: Estado de espera de confirmación
 Cuando la respuesta trae `needsConfirmation = true`, el front SHALL resaltar la respuesta con un aviso distinguible ("Espera tu confirmación") y mostrar los botones Confirmar y Cancelar. Confirmar SHALL enviar un mensaje de confirmación del caso pendiente con `confirm = true`. Cancelar SHALL enviar un mensaje de cancelación. Escribir "confirmo" a mano SHALL funcionar igual.
 
+Si `pendiente.tipo = "crear"`, el aviso SHALL decir que la OC está lista para crear y ofrecer "Crear OC" y "Todavía no".
+
 #### Scenario: Confirmar con botón
 - **WHEN** el usuario pulsa Confirmar en el aviso de sol-004
 - **THEN** se envía la confirmación, el aviso deja de estar activo y la respuesta muestra el número de OC

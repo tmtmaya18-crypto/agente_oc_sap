@@ -370,6 +370,7 @@ function guardarTrazabilidad(directory, caso, trazabilidad) {
 // src/tools/reglas.ts
 var TOLERANCIA_COTIZACION = 0.02;
 var TOLERANCIA_CUADRE = 1;
+var CODIGOS = ["RC1", "RC2", "RC3", "RC4", "RC5", "RC6", "RC7", "RC8", "RC9", "RC10"];
 var pesos = (n) => n.toLocaleString("es-CO");
 var bloqueo = (codigo, detalle) => ({ codigo, tipo: "bloqueo", detalle });
 var confirmacion = (codigo, detalle) => ({ codigo, tipo: "confirmacion", detalle });
@@ -399,21 +400,23 @@ var rc2 = (ctx) => {
   if (!aprobacion.aprobado)
     return [bloqueo("RC2", `El correo de ${aprobacion.de} no contiene "Aprobado". Acci\xF3n: pedir una aprobaci\xF3n expl\xEDcita.`)];
   const centro = centroDe(ctx);
-  const validos = centro?.aprobadores.map((a) => a.email) ?? [];
-  if (!validos.includes(aprobacion.de))
+  const aprobadores = centro?.aprobadores ?? [];
+  if (!aprobadores.some((a) => a.email === aprobacion.de))
     return [
-      bloqueo("RC2", `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores v\xE1lidos: ${validos.join(", ") || "ninguno"}. Acci\xF3n: pedir la aprobaci\xF3n a uno de ellos.`)
+      bloqueo("RC2", `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores del centro: ${aprobadores.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ") || "ninguno"}. Ver RC3 para saber qui\xE9n puede aprobar este valor.`)
     ];
   return [];
 };
 var rc3 = (ctx) => {
   const { aprobacion, solicitud } = ctx.paquete;
-  const aprobador = ctx.maestros.centros.find((c) => c.centro_costo === solicitud.centro_costo)?.aprobadores.find((a) => a.email === aprobacion?.de);
-  const tope = aprobador?.tope ?? 0;
+  const aprobadores = centroDe(ctx)?.aprobadores ?? [];
+  const tope = aprobadores.find((a) => a.email === aprobacion?.de)?.tope ?? 0;
   if (solicitud.valor_total <= tope)
     return [];
+  const suficientes = aprobadores.filter((a) => a.tope >= solicitud.valor_total);
+  const accion = suficientes.length ? `Acci\xF3n: pedir la aprobaci\xF3n a ${suficientes.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ")}.` : `Ning\xFAn aprobador de ${solicitud.centro_costo} tiene tope suficiente (m\xE1ximo ${pesos(Math.max(0, ...aprobadores.map((a) => a.tope)))}). Acci\xF3n: escalar a la direcci\xF3n o dividir la compra seg\xFAn la pol\xEDtica.`;
   return [
-    bloqueo("RC3", `El valor ${pesos(solicitud.valor_total)} supera el tope de ${aprobacion?.de ?? "quien aprueba"} en ${solicitud.centro_costo} (${pesos(tope)}). Acci\xF3n: escalar a un aprobador con tope suficiente.`)
+    bloqueo("RC3", `El valor ${pesos(solicitud.valor_total)} supera el tope de ${aprobacion?.de ?? "quien aprueba"} en ${solicitud.centro_costo} (${pesos(tope)}). ${accion}`)
   ];
 };
 var rc4 = (ctx) => {
@@ -484,15 +487,32 @@ function derivar(paquete, proveedor) {
   return derivados;
 }
 var REGLAS = [rc1, rc2, rc3, rc4, rc5, rc6, rc8, rc9, rc10];
+function estadoControles(paquete, hallazgos, derivados) {
+  const estado = (codigo) => {
+    const h = hallazgos.find((x) => x.codigo === codigo);
+    if (h)
+      return h.tipo;
+    if (codigo === "RC7")
+      return derivados.condiciones_pago ? "derivado" : "ok";
+    if (codigo === "RC8")
+      return paquete.factura ? "ok" : "no_aplica";
+    if (codigo === "RC9")
+      return paquete.aprobacion ? "ok" : "no_aplica";
+    return "ok";
+  };
+  return Object.fromEntries(CODIGOS.map((c) => [c, estado(c)]));
+}
 function validar(paquete, maestros) {
   const proveedor = resolverProveedor(paquete, maestros);
   const hallazgos = REGLAS.flatMap((regla) => regla({ paquete, maestros, proveedor }));
   const bloqueos = hallazgos.filter((h) => h.tipo === "bloqueo");
+  const derivados = derivar(paquete, proveedor);
   return {
     apta: bloqueos.length === 0,
+    controles: estadoControles(paquete, hallazgos, derivados),
     bloqueos,
     confirmaciones: hallazgos.filter((h) => h.tipo === "confirmacion"),
-    derivados: derivar(paquete, proveedor),
+    derivados,
     retroactiva: rc8({ paquete, maestros, proveedor }).length > 0,
     proveedor
   };
@@ -616,11 +636,14 @@ var validar2 = herramienta("oc_validar", {
   args: { caso: argCaso, paquete: argOpcional("Paquete le\xEDdo con oc_leer_paquete.") },
   async run({ caso, paquete: recibido }, ctx) {
     const { paquete, validacion } = cargarYValidar(ctx.directory, caso);
-    const { apta, bloqueos, confirmaciones, derivados, retroactiva, proveedor } = validacion;
-    const resumen = !apta ? `no apta: bloqueos ${codigos(bloqueos).join(", ")}` : confirmaciones.length ? `apta con confirmaci\xF3n requerida: ${codigos(confirmaciones).join(", ")}` : "apta sin confirmaciones";
+    const { apta, controles, bloqueos, confirmaciones, derivados, retroactiva, proveedor } = validacion;
+    const oc_existente = (await crearSap(ctx.directory).buscarOrdenPorReferencia(paquete.solicitud.solicitud_id))?.numero_oc ?? null;
+    const resumen = oc_existente ? `ya existe la OC ${oc_existente} para ${paquete.solicitud.solicitud_id}` : !apta ? `no apta: bloqueos ${codigos(bloqueos).join(", ")}` : confirmaciones.length ? `apta con confirmaci\xF3n requerida: ${codigos(confirmaciones).join(", ")}` : "apta sin confirmaciones";
     return {
       data: {
         apta,
+        oc_existente,
+        controles,
         bloqueos,
         confirmaciones,
         derivados,
@@ -672,6 +695,14 @@ var crear = herramienta("oc_crear", {
   async run({ caso, payload: recibido, confirmado }, ctx) {
     const { paquete, validacion } = cargarYValidar(ctx.directory, caso);
     const { solicitud_id } = paquete.solicitud;
+    const oc = {
+      solicitud_id,
+      proveedor: validacion.proveedor ? `${validacion.proveedor.codigo_sap} \xB7 ${validacion.proveedor.nombre}` : paquete.solicitud.proveedor_nombre,
+      descripcion: paquete.solicitud.descripcion,
+      valor_total: paquete.solicitud.valor_total,
+      moneda: paquete.solicitud.moneda,
+      retroactiva: validacion.retroactiva
+    };
     const sap = crearSap(ctx.directory);
     const control = (resultado, numero_oc) => registrarControl(ctx.directory, {
       solicitud_id,
@@ -685,7 +716,7 @@ var crear = herramienta("oc_crear", {
     if (existente) {
       control("idempotente", existente.numero_oc);
       return {
-        data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true },
+        data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true, oc },
         resumen: `ya exist\xEDa la OC ${existente.numero_oc} para ${solicitud_id}; no se cre\xF3 otra`
       };
     }
@@ -714,6 +745,8 @@ var crear = herramienta("oc_crear", {
         numero_oc,
         fecha,
         idempotente: false,
+        oc,
+        excepciones_confirmadas: codigos(validacion.confirmaciones),
         evidencia: evidencia.ruta,
         ...aviso(camposAlterados(recibido, criticosOrden(orden)), "payload")
       },

@@ -162,15 +162,20 @@ export const validar = herramienta("oc_validar", {
   args: { caso: argCaso, paquete: argOpcional("Paquete leído con oc_leer_paquete.") },
   async run({ caso, paquete: recibido }, ctx) {
     const { paquete, validacion } = cargarYValidar(ctx.directory, caso)
-    const { apta, bloqueos, confirmaciones, derivados, retroactiva, proveedor } = validacion
-    const resumen = !apta
-      ? `no apta: bloqueos ${codigos(bloqueos).join(", ")}`
-      : confirmaciones.length
-        ? `apta con confirmación requerida: ${codigos(confirmaciones).join(", ")}`
-        : "apta sin confirmaciones"
+    const { apta, controles, bloqueos, confirmaciones, derivados, retroactiva, proveedor } = validacion
+    const oc_existente = (await crearSap(ctx.directory).buscarOrdenPorReferencia(paquete.solicitud.solicitud_id))?.numero_oc ?? null
+    const resumen = oc_existente
+      ? `ya existe la OC ${oc_existente} para ${paquete.solicitud.solicitud_id}`
+      : !apta
+        ? `no apta: bloqueos ${codigos(bloqueos).join(", ")}`
+        : confirmaciones.length
+          ? `apta con confirmación requerida: ${codigos(confirmaciones).join(", ")}`
+          : "apta sin confirmaciones"
     return {
       data: {
         apta,
+        oc_existente,
+        controles,
         bloqueos,
         confirmaciones,
         derivados,
@@ -227,6 +232,15 @@ export const crear = herramienta("oc_crear", {
   async run({ caso, payload: recibido, confirmado }, ctx) {
     const { paquete, validacion } = cargarYValidar(ctx.directory, caso)
     const { solicitud_id } = paquete.solicitud
+    // Resumen para informar sin tener que llamar otras herramientas antes.
+    const oc = {
+      solicitud_id,
+      proveedor: validacion.proveedor ? `${validacion.proveedor.codigo_sap} · ${validacion.proveedor.nombre}` : paquete.solicitud.proveedor_nombre,
+      descripcion: paquete.solicitud.descripcion,
+      valor_total: paquete.solicitud.valor_total,
+      moneda: paquete.solicitud.moneda,
+      retroactiva: validacion.retroactiva,
+    }
     const sap = crearSap(ctx.directory)
     const control = (resultado: Parameters<typeof registrarControl>[1]["resultado"], numero_oc: string | null) =>
       registrarControl(ctx.directory, {
@@ -242,7 +256,7 @@ export const crear = herramienta("oc_crear", {
     if (existente) {
       control("idempotente", existente.numero_oc)
       return {
-        data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true },
+        data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true, oc },
         resumen: `ya existía la OC ${existente.numero_oc} para ${solicitud_id}; no se creó otra`,
       }
     }
@@ -274,6 +288,8 @@ export const crear = herramienta("oc_crear", {
         numero_oc,
         fecha,
         idempotente: false,
+        oc,
+        excepciones_confirmadas: codigos(validacion.confirmaciones),
         evidencia: evidencia.ruta,
         ...aviso(camposAlterados(recibido, criticosOrden(orden)), "payload"),
       },

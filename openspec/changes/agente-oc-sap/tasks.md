@@ -62,6 +62,8 @@
 - [x] 9.1 `web/index.html` + `styles.css`: historial, entrada, indicador de "pensando", guía inicial con ejemplos y casos
 - [x] 9.2 `web/app.js`: tarjetas plegables de herramientas (nombre, args, resumen, ok/error) antes del texto
 - [x] 9.3 Aviso de "Espera tu confirmación" con Confirmar/Cancelar (`confirm: true`), errores legibles, botón "Reiniciar SAP simulado"
+- [x] 9.5 Hallazgos de la prueba real (D4c): `controles` y `oc_existente` en oc_validar, RC3 con aprobadores que alcanzan el tope, resumen en oc_crear, pendiente tipo "crear" con botones, prompt ajustado; tests
+- [ ] 9.6 Batería de pruebas con el modelo real sobre los 6 casos y variantes (cancelar, preguntas del proceso, caso inexistente, mensajes ambiguos); registrar hallazgos
 - [ ] 9.4 Prueba manual local con clave: prompt de la sección 11 del PRD + "confirmo", "Crea la OC de sol-003", "Crea la OC de sol-001 otra vez"; commit
 
 ## 10. Despliegue y seguridad

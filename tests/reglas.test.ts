@@ -41,6 +41,29 @@ describe("matriz de resultados esperados (PRD 7.3 y guía)", () => {
     expect(v.apta).toBe(true)
     expect(codigos(v)).toEqual({ bloqueos: [], confirmaciones: [] })
   })
+  test("sol-004: estado explícito de cada control", () => {
+    expect(validar(cargar("sol-004"), maestros).controles).toEqual({
+      RC1: "ok", RC2: "ok", RC3: "ok", RC4: "ok", RC5: "confirmacion",
+      RC6: "ok", RC7: "ok", RC8: "no_aplica", RC9: "ok", RC10: "ok",
+    })
+  })
+  test("sol-006: RC6 pide confirmación y RC7 es derivado", () => {
+    const { controles } = validar(cargar("sol-006"), maestros)
+    expect([controles.RC6, controles.RC7]).toEqual(["confirmacion", "derivado"])
+  })
+  test("sol-003: RC3 dice que ningún aprobador del centro alcanza el valor", () => {
+    const rc3 = validar(cargar("sol-003"), maestros).bloqueos.find((b) => b.codigo === "RC3")!
+    expect(rc3.detalle).toContain("Ningún aprobador de CC-2020 tiene tope suficiente")
+    expect(rc3.detalle).toContain("30.000.000")
+  })
+  test("RC3 sugiere al aprobador del centro cuyo tope sí alcanza", () => {
+    const v = variante((p) => {
+      p.solicitud.cantidad = 1
+      p.solicitud.valor_unitario = 60_000_000
+      p.solicitud.valor_total = 60_000_000
+    })
+    expect(v.bloqueos.find((b) => b.codigo === "RC3")!.detalle).toContain("dgarcia@periferia-ficticia.com (tope 200.000.000)")
+  })
   test("sol-002: bloqueo RC1", () => {
     expect(codigos(validar(cargar("sol-002"), maestros))).toEqual({ bloqueos: ["RC1"], confirmaciones: [] })
   })

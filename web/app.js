@@ -122,15 +122,18 @@ function desactivarAvisosAnteriores() {
 }
 
 function avisoConfirmacion(pendiente) {
+  const caso = escapar(pendiente.caso)
+  const conExcepciones = pendiente.tipo === "excepciones"
   const aviso = crear("div", "espera")
-  aviso.innerHTML = `<strong>⚠️ Espera tu confirmación para crear la OC de ${escapar(pendiente.caso)} (${escapar(
-    pendiente.confirmaciones.join(", "),
-  )}).</strong>`
-  const confirmar = crear("button", "confirmar", "Confirmar")
-  const cancelar = crear("button", "cancelar", "Cancelar")
+  aviso.innerHTML = conExcepciones
+    ? `<strong>⚠️ Espera tu confirmación para crear la OC de ${caso} (${escapar(pendiente.confirmaciones.join(", "))}).</strong>`
+    : `<strong>✅ La OC de ${caso} está lista para crear, sin excepciones.</strong>`
+  const confirmar = crear("button", "confirmar", conExcepciones ? "Confirmar" : "Crear OC")
+  const cancelar = crear("button", "cancelar", conExcepciones ? "Cancelar" : "Todavía no")
   confirmar.type = cancelar.type = "button"
-  confirmar.onclick = () => enviar(`Confirmo la OC de ${pendiente.caso}.`, { confirm: true })
-  cancelar.onclick = () => enviar(`Cancelo, no crees la OC de ${pendiente.caso}.`)
+  confirmar.onclick = () =>
+    enviar(conExcepciones ? `Confirmo la OC de ${pendiente.caso}.` : `Sí, crea la OC de ${pendiente.caso}.`, { confirm: true })
+  cancelar.onclick = () => enviar(`Todavía no, no crees la OC de ${pendiente.caso}.`)
   aviso.append(confirmar, cancelar)
   return aviso
 }

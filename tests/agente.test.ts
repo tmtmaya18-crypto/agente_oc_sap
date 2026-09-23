@@ -63,8 +63,28 @@ describe("ciclo del agente", () => {
     const r = await procesarTurno(sesion, "Procesa sol-004 y no la crees hasta que confirme", {}, d)
     expect(r.toolCalls[1]).toMatchObject({ nombre: "oc_crear", ok: false, bloqueadaPorServidor: true })
     expect(r.needsConfirmation).toBe(true)
-    expect(r.pendiente).toEqual({ caso: "sol-004", confirmaciones: ["RC5"] })
+    expect(r.pendiente).toEqual({ caso: "sol-004", tipo: "excepciones", confirmaciones: ["RC5"] })
     expect(existsSync(join(d.directory, "out", "sap", "ordenes.jsonl"))).toBe(false)
+  })
+
+  test("una solicitud limpia queda 'lista para crear' y una ya creada no deja nada pendiente", async () => {
+    const modelo = new ModeloGuion([
+      { llamadas: [validar("sol-001")] },
+      { texto: "Está lista. ¿La creo?" },
+      { llamadas: [crear("sol-001")] },
+      { texto: "Creada" },
+      { llamadas: [validar("sol-001")] },
+      { texto: "Ya existe" },
+    ])
+    const d = deps(modelo)
+    const sesion = nuevaSesion("s")
+    const lista = await procesarTurno(sesion, "procesa sol-001", {}, d)
+    expect(lista.pendiente).toEqual({ caso: "sol-001", tipo: "crear", confirmaciones: [] })
+    const creada = await procesarTurno(sesion, "créala", {}, d)
+    expect(creada.needsConfirmation).toBe(false)
+    const otraVez = await procesarTurno(sesion, "procesa sol-001", {}, d)
+    expect((otraVez.toolCalls[0]!.resultado as { data: { oc_existente: string } }).data.oc_existente).toBe("4500000001")
+    expect(otraVez.needsConfirmation).toBe(false)
   })
 
   test("CA3: tras 'confirmo' en el turno siguiente la OC se crea", async () => {
