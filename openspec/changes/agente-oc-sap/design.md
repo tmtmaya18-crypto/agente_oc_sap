@@ -36,11 +36,14 @@ agente-oc-sap/
 │   │   ├── oc.ts                   # 5 herramientas oc_* (contrato del PRD)
 │   │   ├── reglas.ts               # RC1–RC10 como funciones puras + umbrales
 │   │   ├── lectura.ts              # parseo de fixtures (cotización, factura)
+│   │   ├── payload.ts              # OrdenCompra, trazabilidad, evidencia (sha256)
 │   │   └── registro.ts             # log.jsonl, control.csv, trazabilidad
 │   ├── sap/adapter.ts · mock.ts    # interfaz SapAdapter + implementación en out/sap/
-│   ├── llm/adapter.ts · anthropic.ts
+│   ├── llm/adapter.ts · anthropic.ts · index.ts   # interfaz, Anthropic y selección por LLM_PROVIDER
+│   ├── config.ts                   # variables de entorno (sin la clave)
 │   ├── agente.ts                   # ciclo del agente (independiente de HTTP)
 │   └── server.ts                   # API HTTP + estáticos
+├── tests/                          # bun test: reglas, herramientas, errores, ciclo (modelo falso), módulo
 ├── web/index.html · app.js · styles.css
 ├── scripts/empaquetar-modulo.ts    # genera modulo/
 ├── modulo/                         # generado (bonus)
@@ -57,7 +60,8 @@ Cada regla RC es una función `(paquete, maestros) → Hallazgo[]`, donde un hal
 
 ### D4. Defensa en dos capas para la confirmación humana (CA3)
 1. **Capa de herramienta:** `oc_crear` vuelve a ejecutar `validar` por su cuenta. Con bloqueos rechaza siempre. Con confirmaciones exige `confirmado = true`.
-2. **Capa de servidor:** el ciclo intercepta `oc_crear` con `confirmado = true` y solo lo deja pasar si la sesión tiene `pendiente = { caso }` del turno anterior **y** el mensaje actual del usuario es una confirmación: botón (`confirm: true`) o texto que coincide con una lista corta de afirmaciones explícitas ("confirmo", "sí, crea", "confirmar"). Si no, devuelve al modelo "requiere confirmación explícita del usuario".
+2. **Capa de servidor:** el ciclo intercepta `oc_crear` con `confirmado = true` y solo lo deja pasar si la sesión tiene una **decisión abierta** para ese caso (`pendiente = { caso, tipo, confirmaciones }`) **y** el mensaje actual de la usuaria es una confirmación: botón (`confirm: true`) o texto que coincide con una lista corta de afirmaciones explícitas ("confirmo", "sí", "sí, créala", "confirmar"). La decisión se cierra al crear la OC, al cancelar ("cancelar", "todavía no", "no la crees") o al procesar otra solicitud; una pregunta intermedia no la cierra. Si no se cumple, devuelve al modelo "requiere confirmación explícita del usuario" y registra el intento en `out/log.jsonl` y en `control.csv` (`bloqueada`, código `CA3`).
+   *Ajuste tras la prueba con el modelo real:* la versión inicial solo aceptaba la confirmación en el turno siguiente; una pregunta intermedia borraba lo pendiente y dejaba a la usuaria en un círculo.
 
 `needsConfirmation` se calcula en el servidor, no por lo que diga el texto del modelo. Es `true` cuando en el turno hubo una validación o un `oc_crear` con confirmaciones pendientes y no se creó la OC.
 *Por qué:* el modelo puede equivocarse o sufrir inyección de instrucciones. El prompt pide confirmar, pero el diseño hace imposible saltárselo (CA2: "el diseño lo hace innecesario").
@@ -81,7 +85,7 @@ Bucle manual: `enviar(historial, herramientas)` → si hay `tool_use`, validar l
 ### D6. Adaptador de modelo: interfaz mínima + Anthropic
 `interface LlmAdapter { enviar(mensajes, herramientas): Promise<{ texto, llamadas[], uso, fin }> }`, con tipos propios neutrales. `anthropic.ts` traduce a y desde `@anthropic-ai/sdk` (Messages API con tools; esquemas generados con `z.toJSONSchema` de zod v4). El proveedor se elige con `LLM_PROVIDER`.
 **Modelo:** `claude-haiku-4-5` (USD 1 / 5 por millón de tokens de entrada / salida), temperatura 0 para respuestas estables, `max_tokens` alrededor de 4000. Se puede cambiar a `claude-sonnet-5` (USD 2 / 10) con `LLM_MODEL` si el razonamiento lo necesita.
-*Costo estimado:* un caso toma unas 5 o 6 idas y vueltas, con cerca de 30–40 mil tokens de entrada acumulados y unos 2 mil de salida. Da alrededor de **USD 0,04 por caso**. En la implementación se mide con el `usage` real y se reporta en SOLUCION.md.
+*Costo:* estimado inicialmente en USD 0,04 por caso. **Medido** con el `usage` real (incluidos los tokens de caché): **USD 0,006 – 0,014 por caso** y 0,014 – 0,022 la secuencia completa de la defensa. La caché del prompt (`cache_control`) ahorra cerca del 90 % de la entrada. Detalle en SOLUCION.md §4.
 *Por qué Haiku:* el razonamiento difícil vive en las herramientas; el modelo solo orquesta y redacta. Lo barato y rápido gana.
 
 ### D7. Conocimiento anexado al prompt de sistema

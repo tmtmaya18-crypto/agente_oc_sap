@@ -80,6 +80,10 @@ Antes de crear, `oc_crear` SHALL buscar por `solicitud_id`. Si ya existe una OC 
 ### Requirement: Log de control
 Cada intento de `oc_crear` (creada, idempotente, bloqueada o pendiente de confirmación) SHALL agregar una fila a `out/control.csv` con las columnas `solicitud_id, resultado, numero_oc, retroactiva, bloqueos, confirmaciones, ts`. Los códigos de bloqueos y confirmaciones se separan con `;`.
 
+#### Scenario: Intento no autorizado
+- **WHEN** el servidor rechaza un `oc_crear` con `confirmado = true` porque la usuaria no confirmó ese caso
+- **THEN** `control.csv` agrega una fila `bloqueada` cuyos bloqueos incluyen `CA3` (confirmación no autorizada)
+
 #### Scenario: Fila de OC retroactiva
 - **WHEN** se intenta crear sol-005 sin confirmación
 - **THEN** `control.csv` tiene una fila con `resultado = pendiente`, `retroactiva = true` y `confirmaciones = RC8`

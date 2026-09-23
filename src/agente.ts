@@ -6,7 +6,9 @@ import { z } from "zod"
 import type { Config } from "./config.ts"
 import { ErrorLlm, type DefinicionHerramienta, type LlamadaHerramienta, type LlmAdapter, type Mensaje } from "./llm/adapter.ts"
 import { herramientas, type NombreHerramienta, type ToolCtx } from "./tools/oc.ts"
-import { registrarLog } from "./tools/registro.ts"
+import { leerMaestros, leerPaquete } from "./tools/lectura.ts"
+import { registrarControl, registrarLog } from "./tools/registro.ts"
+import { validar } from "./tools/reglas.ts"
 
 // ---------- Tipos de la sesión ----------
 
@@ -119,6 +121,27 @@ function actualizarPendiente(actual: Pendiente | null, nombre: string, caso: str
   return actual
 }
 
+/**
+ * Un oc_crear con confirmado=true que el servidor rechaza también es un intento: queda en
+ * control.csv como "bloqueada" con el código CA3 (confirmación no autorizada), para auditoría.
+ */
+function registrarIntentoNoAutorizado(directory: string, caso: string) {
+  try {
+    const { paquete } = leerPaquete(directory, caso)
+    const v = validar(paquete, leerMaestros(directory))
+    registrarControl(directory, {
+      solicitud_id: paquete.solicitud.solicitud_id,
+      resultado: "bloqueada",
+      numero_oc: null,
+      retroactiva: v.retroactiva,
+      bloqueos: [...v.bloqueos.map((b) => b.codigo), "CA3"],
+      confirmaciones: v.confirmaciones.map((c) => c.codigo),
+    })
+  } catch {
+    // Caso inexistente o ilegible: no hay solicitud que registrar; ya quedó en log.jsonl.
+  }
+}
+
 // ---------- Ejecución de una herramienta ----------
 
 async function ejecutar(
@@ -164,6 +187,7 @@ async function ejecutar(
   // Gate de confirmación: confirmado=true solo pasa si la usuaria confirmó ESE caso en ESTE mensaje.
   const { caso, confirmado } = args.data as { caso?: string; confirmado?: boolean }
   if (llamada.nombre === "oc_crear" && confirmado === true && confirmacionValida?.caso !== caso) {
+    if (caso) registrarIntentoNoAutorizado(ctx.directory, caso)
     return rechazar(
       "Requiere confirmación explícita del usuario en su último mensaje. Muéstrale las excepciones y pregúntale antes de crear.",
       { bloqueadaPorServidor: true },

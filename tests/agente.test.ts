@@ -66,6 +66,9 @@ describe("ciclo del agente", () => {
     expect(r.needsConfirmation).toBe(true)
     expect(r.pendiente).toEqual({ caso: "sol-004", tipo: "excepciones", confirmaciones: ["RC5"] })
     expect(existsSync(join(d.directory, "out", "sap", "ordenes.jsonl"))).toBe(false)
+    // El intento no autorizado queda en control.csv con el código CA3.
+    const control = readFileSync(join(d.directory, "out", "control.csv"), "utf8").trim().split("\n")
+    expect(control[1]).toStartWith("SOL-2026-004,bloqueada,,false,CA3,RC5,")
   })
 
   test("una solicitud limpia queda 'lista para crear' y una ya creada no deja nada pendiente", async () => {

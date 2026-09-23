@@ -40,7 +40,7 @@ Sin clave el servidor igual arranca: `/api/health` responde y el chat explica qu
 
 ```bash
 bun install && bun run demo.ts   # 6 casos + idempotencia + confirmación, 36 verificaciones, sin clave
-bun test                         # 55 tests: reglas, herramientas, ciclo del agente (modelo falso), módulo
+bun test                         # 62 tests: reglas, herramientas, errores, ciclo del agente (modelo falso), módulo
 ```
 
 `demo.ts` termina con código 1 si algún resultado difiere de lo esperado en el PRD.
