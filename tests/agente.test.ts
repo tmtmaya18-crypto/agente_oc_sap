@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import { construirSistema, definiciones, esConfirmacion, nuevaSesion, procesarTurno, type Dependencias } from "../src/agente.ts"
+import { construirSistema, definiciones, esCancelacion, esConfirmacion, nuevaSesion, procesarTurno, type Dependencias } from "../src/agente.ts"
 import { config } from "../src/config.ts"
 import { ErrorLlm, type LlamadaHerramienta, type LlmAdapter, type RespuestaLlm } from "../src/llm/adapter.ts"
 import { directorioTemporal, RAIZ } from "./helpers.ts"
@@ -19,7 +19,7 @@ class ModeloGuion implements LlmAdapter {
     const paso = this.pasos[this.llamadasRecibidas++] ?? { texto: "fin del guion" }
     if (paso === "error") throw new ErrorLlm("El modelo no respondió a tiempo. Puedes reintentar el mensaje.")
     const llamadas = (paso.llamadas ?? []).map((l, i) => ({ ...l, id: `t${this.llamadasRecibidas}-${i}` }))
-    return { texto: paso.texto ?? "", llamadas, uso: { entrada: 100, salida: 10 }, fin: llamadas.length ? "herramientas" : "fin" }
+    return { texto: paso.texto ?? "", llamadas, uso: { entrada: 100, salida: 10, cacheEscritura: 0, cacheLectura: 0 }, fin: llamadas.length ? "herramientas" : "fin" }
   }
 }
 
@@ -40,6 +40,7 @@ describe("detector de confirmación", () => {
   test("acepta afirmaciones explícitas y rechaza negaciones", () => {
     for (const t of ["confirmo", "Confirmo la OC de sol-004", "sí, créala", "Si, procede", "sí"]) expect(esConfirmacion(t)).toBe(true)
     for (const t of ["no confirmo", "cancelar", "¿qué es RC5?", "sí, pero antes explícame RC5"]) expect(esConfirmacion(t)).toBe(false)
+    for (const t of ["Cancelar, no la crees", "Todavía no, no crees la OC de sol-001.", "no por ahora"]) expect(esCancelacion(t)).toBe(true)
   })
 })
 
@@ -103,20 +104,42 @@ describe("ciclo del agente", () => {
     expect(r.needsConfirmation).toBe(false)
   })
 
-  test("CA3: la confirmación de otro caso o un mensaje intermedio no sirven", async () => {
+  test("CA3: una pregunta intermedia no borra la decisión abierta", async () => {
+    const modelo = new ModeloGuion([
+      { llamadas: [validar("sol-005")] },
+      { texto: "¿Confirmas?" },
+      { texto: "Retroactiva significa que la factura llegó antes. ¿Confirmas?" },
+      { llamadas: [crear("sol-005", true)] },
+      { texto: "Creada" },
+    ])
+    const d = deps(modelo)
+    const sesion = nuevaSesion("s")
+    await procesarTurno(sesion, "revisa sol-005", {}, d)
+    const pregunta = await procesarTurno(sesion, "¿qué significa retroactiva?", {}, d)
+    expect(pregunta.needsConfirmation).toBe(true)
+    const r = await procesarTurno(sesion, "confirmo", {}, d)
+    expect(r.toolCalls[0]).toMatchObject({ nombre: "oc_crear", ok: true })
+  })
+
+  test("CA3: cancelar cierra la decisión y la confirmación de otro caso no sirve", async () => {
     const modelo = new ModeloGuion([
       { llamadas: [validar("sol-004")] },
       { texto: "¿Confirmas?" },
-      { texto: "RC5 compara cotización y solicitud." },
+      { llamadas: [crear("sol-006", true)] },
+      { texto: "..." },
+      { texto: "Cancelada" },
       { llamadas: [crear("sol-004", true)] },
       { texto: "..." },
     ])
     const d = deps(modelo)
     const sesion = nuevaSesion("s")
     await procesarTurno(sesion, "procesa sol-004", {}, d)
-    await procesarTurno(sesion, "¿qué significa RC5?", {}, d)
-    const r = await procesarTurno(sesion, "confirmo", {}, d)
-    expect(r.toolCalls[0]).toMatchObject({ ok: false, bloqueadaPorServidor: true })
+    const otroCaso = await procesarTurno(sesion, "confirmo", {}, d)
+    expect(otroCaso.toolCalls[0]).toMatchObject({ ok: false, bloqueadaPorServidor: true })
+    const cancelada = await procesarTurno(sesion, "Cancelar, no la crees", {}, d)
+    expect(cancelada.needsConfirmation).toBe(false)
+    const tarde = await procesarTurno(sesion, "confirmo", {}, d)
+    expect(tarde.toolCalls[0]).toMatchObject({ ok: false, bloqueadaPorServidor: true })
   })
 
   test("el botón Confirmar (confirm=true) funciona aunque el texto no sea una afirmación", async () => {

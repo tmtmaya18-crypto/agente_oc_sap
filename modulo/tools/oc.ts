@@ -403,7 +403,7 @@ var rc2 = (ctx) => {
   const aprobadores = centro?.aprobadores ?? [];
   if (!aprobadores.some((a) => a.email === aprobacion.de))
     return [
-      bloqueo("RC2", `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores del centro: ${aprobadores.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ") || "ninguno"}. Ver RC3 para saber qui\xE9n puede aprobar este valor.`)
+      bloqueo("RC2", `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Acci\xF3n: pedir la aprobaci\xF3n a un aprobador de ${solicitud.centro_costo} cuyo tope cubra el valor (RC3 indica qui\xE9n puede, si alguien puede).`)
     ];
   return [];
 };

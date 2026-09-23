@@ -20,7 +20,8 @@ export type DefinicionHerramienta = {
 export type RespuestaLlm = {
   texto: string
   llamadas: LlamadaHerramienta[]
-  uso: { entrada: number; salida: number }
+  /** entrada = tokens sin caché; cacheEscritura / cacheLectura = tokens del prompt escritos o leídos de caché. */
+  uso: { entrada: number; salida: number; cacheEscritura: number; cacheLectura: number }
   fin: "fin" | "herramientas" | "limite_tokens" | "rechazo" | "otro"
 }
 

@@ -89,7 +89,7 @@ const servidor = Bun.serve({
       GET: (req) => {
         const sesion = sesiones.get(req.params.id)
         if (!sesion) return json({ error: "Sesión no encontrada" }, 404)
-        return json({ id: sesion.id, historial: sesion.historial, tokens: sesion.tokens, pendiente: sesion.pendiente })
+        return json({ id: sesion.id, historial: sesion.historial, tokens: sesion.tokens, uso: sesion.uso, pendiente: sesion.pendiente })
       },
     },
     "/api/reset": {

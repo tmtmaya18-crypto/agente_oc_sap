@@ -37,6 +37,8 @@ export type Sesion = {
   /** Conversación tal como la ve la usuaria (GET /api/sessions/:id). */
   historial: EntradaHistorial[]
   tokens: number
+  /** Tokens por tipo, para estimar el costo real (entrada y salida tienen precios distintos). */
+  uso: { entrada: number; salida: number; cacheEscritura: number; cacheLectura: number }
   pendiente: Pendiente | null
   ultimaActividad: number
 }
@@ -71,7 +73,7 @@ export function reiniciarContadorGlobal() {
 }
 
 export function nuevaSesion(id: string): Sesion {
-  return { id, mensajes: [], historial: [], tokens: 0, pendiente: null, ultimaActividad: Date.now() }
+  return { id, mensajes: [], historial: [], tokens: 0, uso: { entrada: 0, salida: 0, cacheEscritura: 0, cacheLectura: 0 }, pendiente: null, ultimaActividad: Date.now() }
 }
 
 // ---------- Confirmación humana (CA3), controlada por el servidor ----------
@@ -83,6 +85,11 @@ export function esConfirmacion(texto: string): boolean {
   const t = sinTildes(texto).trim()
   if (/\bno\b/.test(t) || /\bcancel/.test(t)) return false
   return /\bconfirm(o|ar|ado|ada)\b/.test(t) || /^si[\s!.]*$/.test(t) || /^si\b[\s,!.]*(crea|creala|procede|adelante)\b/.test(t)
+}
+
+export function esCancelacion(texto: string): boolean {
+  const t = sinTildes(texto)
+  return /\bcancel/.test(t) || /\bno (la )?crees\b/.test(t) || /\btodavia no\b/.test(t) || /\bno por ahora\b/.test(t)
 }
 
 type Resultado = {
@@ -165,10 +172,12 @@ export async function procesarTurno(
   sesion.ultimaActividad = Date.now()
   sesion.historial.push({ rol: "usuario", texto, ts: ts() })
 
-  // CA3: la confirmación vale solo para lo que quedó pendiente en el turno anterior.
+  // CA3: la confirmación vale para la decisión que sigue abierta (y visible) desde el turno anterior.
+  // La decisión se cierra si la usuaria cancela, si la OC se crea o si se procesa otra solicitud;
+  // una pregunta intermedia ("¿qué significa RC8?") no la borra.
   const pendienteAnterior = sesion.pendiente
   const confirmacionValida = pendienteAnterior && (opciones.confirm === true || esConfirmacion(texto)) ? pendienteAnterior : null
-  sesion.pendiente = null
+  if (esCancelacion(texto)) sesion.pendiente = null
 
   const toolCalls: LlamadaVisible[] = []
   const cerrar = (reply: string, error?: string): RespuestaTurno => {
@@ -190,9 +199,15 @@ export async function procesarTurno(
       if (limiteEnCurso) return cerrar(limiteEnCurso, "tope de uso")
 
       const respuesta = await deps.llm.enviar([{ rol: "sistema", texto: deps.sistema }, ...sesion.mensajes], definiciones)
-      const consumidos = respuesta.uso.entrada + respuesta.uso.salida
+      // Los topes cuentan todo lo procesado, también lo leído de caché (si no, se podrían esquivar).
+      const { entrada, salida, cacheEscritura, cacheLectura } = respuesta.uso
+      const consumidos = entrada + salida + cacheEscritura + cacheLectura
       sesion.tokens += consumidos
       tokensGlobales += consumidos
+      sesion.uso.entrada += entrada
+      sesion.uso.salida += salida
+      sesion.uso.cacheEscritura += cacheEscritura
+      sesion.uso.cacheLectura += cacheLectura
       sesion.mensajes.push({ rol: "asistente", texto: respuesta.texto, llamadas: respuesta.llamadas })
 
       if (respuesta.llamadas.length === 0) {
@@ -221,7 +236,6 @@ export async function procesarTurno(
     // CA5: el error se muestra claro y la sesión sigue viva. Se descarta el turno incompleto
     // del historial del modelo para que el siguiente mensaje parta de un estado consistente.
     sesion.mensajes.length = antes
-    sesion.pendiente = sesion.pendiente ?? pendienteAnterior
     const mensaje = error instanceof ErrorLlm ? error.message : "Ocurrió un error inesperado procesando el mensaje. Puedes reintentar."
     return cerrar(`⚠️ ${mensaje}`, mensaje)
   }

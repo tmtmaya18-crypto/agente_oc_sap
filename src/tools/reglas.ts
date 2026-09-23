@@ -73,9 +73,7 @@ export const rc2: Regla = (ctx) => {
     return [
       bloqueo(
         "RC2",
-        `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Aprobadores del centro: ${
-          aprobadores.map((a) => `${a.email} (tope ${pesos(a.tope)})`).join(", ") || "ninguno"
-        }. Ver RC3 para saber quién puede aprobar este valor.`,
+        `${aprobacion.de} no es aprobador de ${solicitud.centro_costo}. Acción: pedir la aprobación a un aprobador de ${solicitud.centro_costo} cuyo tope cubra el valor (RC3 indica quién puede, si alguien puede).`,
       ),
     ]
   return []

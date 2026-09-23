@@ -19,7 +19,7 @@ El prompt de sistema SHALL prohibir afirmar valores (montos, códigos, números 
 - **THEN** la herramienta no se ejecuta y el modelo recibe `{ ok: false, error }` con el detalle de la validación
 
 ### Requirement: Confirmación humana controlada por el servidor (CA3)
-Cuando una acción requiere confirmación, el agente SHALL terminar el turno con una pregunta explícita y la respuesta SHALL traer `needsConfirmation = true` junto con el caso pendiente. El servidor SHALL permitir que `oc_crear` se ejecute con `confirmado = true` solo si el mensaje del usuario en ese turno es una confirmación de un caso que estaba pendiente en el turno anterior (botón Confirmar o texto afirmativo explícito como "confirmo"). En cualquier otro caso, SHALL devolver al modelo el error "requiere confirmación explícita del usuario" sin ejecutar.
+Cuando una acción requiere confirmación, el agente SHALL terminar el turno con una pregunta explícita y la respuesta SHALL traer `needsConfirmation = true` junto con el caso pendiente. El servidor SHALL permitir que `oc_crear` se ejecute con `confirmado = true` solo si el mensaje del usuario en ese turno es una confirmación (botón Confirmar o texto afirmativo explícito como "confirmo") del caso cuya decisión sigue abierta. La decisión SHALL mantenerse abierta, y visible en cada respuesta, hasta que la OC se cree, la usuaria cancele o se procese otra solicitud; una pregunta intermedia no la cierra. En cualquier otro caso, SHALL devolver al modelo el error "requiere confirmación explícita del usuario" sin ejecutar.
 
 #### Scenario: Demo de la sección 11
 - **WHEN** en una sesión nueva el usuario pide "Procesa la solicitud sol-004 … no la crees hasta que yo lo confirme"
@@ -28,6 +28,14 @@ Cuando una acción requiere confirmación, el agente SHALL terminar el turno con
 #### Scenario: Confirmación válida
 - **WHEN** el usuario responde "confirmo" en el turno siguiente
 - **THEN** el agente crea la OC y responde con el número de OC y la ruta de la evidencia
+
+#### Scenario: Pregunta intermedia
+- **WHEN** tras la pregunta de confirmación de sol-005 la usuaria pregunta "¿qué significa retroactiva?" y luego escribe "confirmo"
+- **THEN** la respuesta a la pregunta sigue trayendo `needsConfirmation = true` y el "confirmo" crea la OC
+
+#### Scenario: Cancelación
+- **WHEN** la usuaria cancela y más tarde escribe "confirmo"
+- **THEN** la decisión ya está cerrada y el servidor bloquea `oc_crear` con `confirmado = true`
 
 #### Scenario: Intento sin confirmación previa
 - **WHEN** el modelo intenta `oc_crear` con `confirmado = true` sin que el usuario haya confirmado en ese turno

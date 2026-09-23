@@ -77,7 +77,14 @@ function deRespuestaAnthropic(respuesta: Anthropic.Message): RespuestaLlm {
           : respuesta.stop_reason === "refusal"
             ? "rechazo"
             : "otro"
-  return { texto, llamadas, uso: { entrada: respuesta.usage.input_tokens, salida: respuesta.usage.output_tokens }, fin }
+  const u = respuesta.usage
+  const uso = {
+    entrada: u.input_tokens,
+    salida: u.output_tokens,
+    cacheEscritura: u.cache_creation_input_tokens ?? 0,
+    cacheLectura: u.cache_read_input_tokens ?? 0,
+  }
+  return { texto, llamadas, uso, fin }
 }
 
 /** De más específico a menos específico; APIConnectionError es subclase de APIError en este SDK. */
