@@ -45,11 +45,11 @@
 
 ## 7. Adaptador de modelo y ciclo del agente
 
-- [ ] 7.1 `src/llm/adapter.ts`: interfaz `LlmAdapter.enviar` con tipos neutrales (mensajes, llamadas, uso, motivo de fin)
-- [ ] 7.2 `src/llm/anthropic.ts`: Messages API con tools (`z.toJSONSchema`), modelo y timeout por env, errores tipados del SDK a mensajes claros
-- [ ] 7.3 `src/agente.ts`: bucle con `MAX_ITERACIONES`, validación zod de args, ejecución de herramientas, resultados en un solo mensaje, topes de tokens por sesión y global
-- [ ] 7.4 Gate de confirmación en el servidor (estado `pendiente`, detector de confirmación, bloqueo de `oc_crear` con `confirmado` sin confirmación del usuario) y cálculo de `needsConfirmation`
-- [ ] 7.5 Test del ciclo con un adaptador falso (sin red): tope de iteraciones, gate de confirmación, error del proveedor que no mata la sesión
+- [x] 7.1 `src/llm/adapter.ts`: interfaz `LlmAdapter.enviar` con tipos neutrales (mensajes, llamadas, uso, motivo de fin)
+- [x] 7.2 `src/llm/anthropic.ts`: Messages API con tools (`z.toJSONSchema`), modelo y timeout por env, errores tipados del SDK a mensajes claros
+- [x] 7.3 `src/agente.ts`: bucle con `MAX_ITERACIONES`, validación zod de args, ejecución de herramientas, resultados en un solo mensaje, topes de tokens por sesión y global
+- [x] 7.4 Gate de confirmación en el servidor (estado `pendiente`, detector de confirmación, bloqueo de `oc_crear` con `confirmado` sin confirmación del usuario) y cálculo de `needsConfirmation`
+- [x] 7.5 Test del ciclo con un adaptador falso (sin red): tope de iteraciones, gate de confirmación, error del proveedor que no mata la sesión
 
 ## 8. API HTTP
 
