@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { herramientas, type NombreHerramienta, type ToolCtx } from "../src/tools/oc.ts"
-import { sha256 } from "../src/tools/payload.ts"
+import { recortarDescripcion, sha256 } from "../src/tools/payload.ts"
 import { directorioTemporal } from "./helpers.ts"
 
 type Respuesta = { ok: boolean; data?: Record<string, any>; error?: string; [k: string]: unknown }
@@ -40,6 +40,12 @@ describe("contrato de herramientas", () => {
 })
 
 describe("payload y evidencia", () => {
+  test("la descripción recortada no parte palabras ni termina en conectores", () => {
+    expect(recortarDescripcion("Bolsa de 100 horas de arquitectura de nube para migración")).toBe("Bolsa de 100 horas de arquitectura")
+    expect(recortarDescripcion("Renovación licencias antivirus corporativo 120 puestos, vigencia 12 meses")).toBe("Renovación licencias antivirus")
+    expect(recortarDescripcion("Papelería y tóner para el trimestre")).toBe("Papelería y tóner para el trimestre")
+  })
+
   test("sol-001: payload válido con descripción ≤ 40 y trazabilidad", async () => {
     const { ctx, llamar } = entorno()
     const r = await llamar("oc_construir_payload", { caso: "sol-001" })

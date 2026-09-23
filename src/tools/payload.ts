@@ -25,7 +25,10 @@ export function recortarDescripcion(texto: string): string {
   if (texto.length <= MAX_DESCRIPCION) return texto
   const corte = texto.slice(0, MAX_DESCRIPCION)
   const espacio = corte.lastIndexOf(" ")
-  return (espacio > MAX_DESCRIPCION / 2 ? corte.slice(0, espacio) : corte).replace(/[\s,;.]+$/, "")
+  let recortada = (espacio > MAX_DESCRIPCION / 2 ? corte.slice(0, espacio) : corte).replace(/[\s,;.]+$/, "")
+  // No terminar en conectores ("…arquitectura de"): se ve mal en el texto breve de SAP.
+  while (/\s(de|del|la|el|los|las|y|e|o|u|para|con|en|a|al|por)$/i.test(recortada)) recortada = recortada.replace(/\s\S+$/, "")
+  return recortada
 }
 
 /** H si se cobra por horas, MES si se cobra por mes; si no, unidades. */

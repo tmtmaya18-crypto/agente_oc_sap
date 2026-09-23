@@ -59,9 +59,9 @@
 
 ## 9. Front de chat
 
-- [ ] 9.1 `web/index.html` + `styles.css`: historial, entrada, indicador de "pensando", guía inicial con ejemplos y casos
-- [ ] 9.2 `web/app.js`: tarjetas plegables de herramientas (nombre, args, resumen, ok/error) antes del texto
-- [ ] 9.3 Aviso de "Espera tu confirmación" con Confirmar/Cancelar (`confirm: true`), errores legibles, botón "Reiniciar SAP simulado"
+- [x] 9.1 `web/index.html` + `styles.css`: historial, entrada, indicador de "pensando", guía inicial con ejemplos y casos
+- [x] 9.2 `web/app.js`: tarjetas plegables de herramientas (nombre, args, resumen, ok/error) antes del texto
+- [x] 9.3 Aviso de "Espera tu confirmación" con Confirmar/Cancelar (`confirm: true`), errores legibles, botón "Reiniciar SAP simulado"
 - [ ] 9.4 Prueba manual local con clave: prompt de la sección 11 del PRD + "confirmo", "Crea la OC de sol-003", "Crea la OC de sol-001 otra vez"; commit
 
 ## 10. Despliegue y seguridad

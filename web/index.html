@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agente de Órdenes de Compra</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="barra">
+      <div>
+        <h1>Agente de Órdenes de Compra</h1>
+        <p class="sub">Prepara, valida y crea OC en un SAP simulado · <span id="modelo">…</span></p>
+      </div>
+      <button id="reiniciar" class="secundario" type="button" title="Deja out/ limpio y sol-001 creada como 4500000001">
+        Reiniciar SAP simulado
+      </button>
+    </header>
+
+    <main id="conversacion" aria-live="polite">
+      <section id="bienvenida" class="bienvenida">
+        <h2>¿Qué solicitud procesamos?</h2>
+        <p>
+          Hay 6 solicitudes de compra de ejemplo: <code>sol-001</code> a <code>sol-006</code>. El agente lee el paquete,
+          aplica los controles RC1–RC10, arma la OC como quedaría en SAP y <strong>pide tu confirmación</strong> antes de
+          crear cualquier OC con excepciones. Cada herramienta que usa aparece como una tarjeta.
+        </p>
+        <p class="nota">Estado inicial del SAP simulado: <code>sol-001</code> ya creada como OC <code>4500000001</code>.</p>
+        <div class="ejemplos">
+          <button type="button" class="ejemplo">Procesa la solicitud "sol-004". Muéstrame la OC como quedaría en SAP, qué validaciones pasó y cuáles no, y no la crees hasta que yo lo confirme.</button>
+          <button type="button" class="ejemplo">Crea la OC de sol-003.</button>
+          <button type="button" class="ejemplo">Crea la OC de sol-001 otra vez.</button>
+          <button type="button" class="ejemplo">Procesa sol-006 y dime qué valores se derivaron.</button>
+          <button type="button" class="ejemplo">¿Qué significa una OC retroactiva? Revisa sol-005.</button>
+        </div>
+      </section>
+    </main>
+
+    <form id="formulario" class="entrada">
+      <label for="mensaje" class="oculto">Mensaje</label>
+      <textarea id="mensaje" rows="2" placeholder="Escribe, por ejemplo: procesa sol-004" required></textarea>
+      <button id="enviar" type="submit">Enviar</button>
+    </form>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
